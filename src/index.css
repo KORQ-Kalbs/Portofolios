@@ -1,0 +1,176 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  color-scheme: light dark;
+  color: rgba(255, 255, 255, 0.87);
+  background-color: #242424;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  /* VARIABEL TRANSPARANSI YANG DAPAT DIATUR */
+  --section-opacity: 0.85; /* 0-1 */
+  --card-opacity: 0.92; /* 0-1 */
+  --bubble-opacity: 0.3; /* 0-1 */
+  --blur-intensity: 5px; /* px value */
+}
+
+/* Bubble Animation */
+.bubble {
+  position: fixed;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at 30% 30%,
+    rgba(255, 255, 255, var(--bubble-opacity)),
+    transparent 70%
+  );
+  box-shadow:
+    inset 0 0 15px rgba(255, 255, 255, calc(var(--bubble-opacity) * 0.7)),
+    0 0 20px rgba(255, 255, 255, calc(var(--bubble-opacity) * 0.7));
+  z-index: -1;
+  pointer-events: none;
+  will-change: transform;
+}
+
+#bubble-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: -1;
+  touch-action: none;
+}
+
+/* Transparent backgrounds */
+.bg-section-transparent {
+  background-color: rgba(31, 41, 55, var(--section-opacity)) !important;
+  backdrop-filter: blur(var(--blur-intensity));
+}
+
+.bg-card-transparent {
+  background-color: rgba(255, 255, 255, var(--card-opacity)) !important;
+}
+
+.dark .bg-card-transparent {
+  background-color: rgba(55, 65, 81, var(--card-opacity)) !important;
+}
+
+/* Futuristic Scrollbar */
+::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+::-webkit-scrollbar-track {
+  background: linear-gradient(145deg, #0f172a 0%, #1e293b 100%);
+  border-radius: 10px;
+  box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.5);
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(145deg, #4f46e5 0%, #8b5cf6 100%);
+  border-radius: 10px;
+  border: 2px solid #1e293b;
+  box-shadow:
+    0 0 10px rgba(79, 70, 229, 0.7),
+    inset 0 0 5px rgba(255, 255, 255, 0.2);
+  transition: all 0.3s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(145deg, #6366f1 0%, #a855f7 100%);
+  box-shadow:
+    0 0 15px rgba(99, 102, 241, 0.9),
+    inset 0 0 7px rgba(255, 255, 255, 0.3);
+  transform: scale(1.05);
+}
+
+::-webkit-scrollbar-corner {
+  background: #0f172a;
+}
+
+/* For Firefox */
+html {
+  scrollbar-width: thin;
+  scrollbar-color: #4f46e5 #0f172a;
+}
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Neon glow effect */
+.neon-glow {
+  text-shadow:
+    0 0 5px rgba(79, 70, 229, 0.5),
+    0 0 10px rgba(79, 70, 229, 0.3),
+    0 0 15px rgba(79, 70, 229, 0.2);
+}
+
+/* Section headers */
+.section-header {
+  position: relative;
+  display: inline-block;
+}
+
+.section-header::after {
+  content: "";
+  position: absolute;
+  bottom: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60px;
+  height: 3px;
+  background: linear-gradient(90deg, #4f46e5, #8b5cf6);
+  border-radius: 2px;
+  box-shadow: 0 0 10px rgba(79, 70, 229, 0.7);
+}
+
+/* Card hover effects */
+.hover-glow:hover {
+  box-shadow: 0 10px 25px -5px rgba(79, 70, 229, 0.5);
+  transform: translateY(-5px);
+}
+
+/* Button effects */
+.btn-gradient {
+  background: linear-gradient(145deg, #4f46e5 0%, #8b5cf6 100%);
+  transition: all 0.3s ease;
+}
+
+.btn-gradient:hover {
+  background: linear-gradient(145deg, #6366f1 0%, #a855f7 100%);
+  box-shadow: 0 10px 20px -5px rgba(79, 70, 229, 0.5);
+  transform: translateY(-2px);
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.animate-fade-in {
+  animation: fade-in 0.5s ease-out;
+}
+
+/* Interactive Effects */
+.bubble-interactive {
+  transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
