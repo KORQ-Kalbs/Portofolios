@@ -21,28 +21,36 @@ const About = () => {
 
   useGSAP(() => {
     const container = scrollContainerRef.current;
-    if (!container) return;
+    if (!container || !skillsWrapperRef.current) return;
 
-    // Horizontal scroll animation
-    gsap.registerPlugin(ScrollTrigger);
+    // Calculate the horizontal scroll distance
+    const totalScroll =
+      skillsWrapperRef.current.scrollWidth - window.innerWidth;
 
+    // Start from left (negative position) so it can scroll right
+    gsap.set(skillsWrapperRef.current, { x: -totalScroll });
+
+    // Create the horizontal scroll animation WITH PINNING
+    // This pins the section in place while the horizontal scroll happens
+    // Scrolling from left (-totalScroll) to right (0)
     const animation = gsap.to(skillsWrapperRef.current, {
-      x: () =>
-        -(skillsWrapperRef.current.scrollWidth - window.innerWidth + 100),
-      duration: 3,
+      x: 0, // Scroll to the right (from negative to 0)
       ease: "none",
       scrollTrigger: {
         trigger: container,
-        start: "top 80%",
-        end: "bottom 20%",
-        scrub: 1.2,
+        start: "top top", // Pin when section reaches top
+        end: () => `+=${totalScroll * 2}`, // Ensure full horizontal scroll completes
+        scrub: 1,
+        pin: true, // PIN THE SECTION
+        anticipatePin: 1,
         markers: false,
+        invalidateOnRefresh: true, // Recalculate on window resize
       },
     });
 
-    // Scroll trigger for section entrance
+    // Entrance animation for skill cards (only on first view)
     const skillCards = container.querySelectorAll(".skill-card");
-    skillCards.forEach((card, idx) => {
+    skillCards.forEach((card, index) => {
       gsap.fromTo(
         card,
         { opacity: 0, y: 30 },
@@ -50,11 +58,11 @@ const About = () => {
           opacity: 1,
           y: 0,
           duration: 0.6,
+          delay: index * 0.1, // Stagger effect
           scrollTrigger: {
-            trigger: card,
-            start: "top 85%",
-            end: "top 70%",
-            scrub: 0.5,
+            trigger: container,
+            start: "top 80%",
+            once: true, // Only animate once
             markers: false,
           },
         },
@@ -64,8 +72,10 @@ const About = () => {
     return () => {
       animation.scrollTrigger?.kill();
       skillCards.forEach((card) => {
-        const trigger = ScrollTrigger.getAll().find((t) => t.trigger === card);
-        if (trigger) trigger.kill();
+        const triggers = ScrollTrigger.getAll().filter(
+          (t) => t.trigger === card,
+        );
+        triggers.forEach((trigger) => trigger.kill());
       });
     };
   });
@@ -121,12 +131,13 @@ const About = () => {
       </div>
 
       {/* Horizontal Scrolling Skills Gallery */}
-      <div ref={scrollContainerRef} className="mt-12">
+      <div ref={scrollContainerRef} className="relative mt-12">
         <h3 className="mb-6 text-2xl font-bold">Tech Stack</h3>
         <div className="p-1 overflow-hidden bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 rounded-2xl">
           <div
             ref={skillsWrapperRef}
             className="flex gap-6 px-4 pb-4 will-change-transform"
+            style={{ willChange: 'transform' }}
           >
             {SKILLS.map((skill, idx) => (
               <div
@@ -158,8 +169,8 @@ const About = () => {
             ))}
           </div>
         </div>
-        <p className="mt-4 text-sm text-center text-gray-500 md:text-right">
-          Scroll here to explore my skills →
+        <p className="mt-4 text-sm text-center text-gray-500 md:text-right animate-pulse">
+          ✨ Scroll down to explore all skills →
         </p>
       </div>
     </SectionWrapper>

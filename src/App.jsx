@@ -1,5 +1,4 @@
 import React, { useRef, useEffect } from "react";
-import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { ScrollToPlugin } from "gsap/ScrollToPlugin";
@@ -16,11 +15,7 @@ gsap.registerPlugin(ScrollTrigger, ScrollToPlugin);
 function App() {
   const mainRef = useRef(null);
   const containerRef = useRef(null);
-
-  useGSAP(() => {
-    // Smooth scroll to sections when sidebar clicked
-    ScrollTrigger.refresh();
-  }, []);
+  const isScrollingRef = useRef(false);
 
   useEffect(() => {
     // Cleanup ScrollTrigger on unmount
@@ -31,8 +26,13 @@ function App() {
 
   const scrollToSection = (sectionId) => {
     const element = document.getElementById(sectionId);
-    if (element) {
+    if (element && !isScrollingRef.current) {
+      isScrollingRef.current = true;
       smoothScrollTo(element, 80);
+      // Allow scroll immediately without waiting
+      setTimeout(() => {
+        isScrollingRef.current = false;
+      }, 100);
     }
   };
 
