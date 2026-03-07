@@ -2,6 +2,10 @@
 @tailwind components;
 @tailwind utilities;
 
+html {
+  scroll-behavior: smooth;
+}
+
 :root {
   font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
@@ -11,7 +15,7 @@
   color: rgba(255, 255, 255, 0.87);
   background-color: #242424;
 
-  font-synthesis: none;
+    font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -21,6 +25,24 @@
   --card-opacity: 0.92; /* 0-1 */
   --bubble-opacity: 0.3; /* 0-1 */
   --blur-intensity: 5px; /* px value */
+}
+
+/* Smooth Scrolling */
+body {
+  scroll-behavior: smooth;
+  overflow-x: hidden;
+}
+
+/* Performance Optimizations */
+.will-change-transform {
+  will-change: transform;
+}
+
+.skill-card,
+.project-image {
+  backface-visibility: hidden;
+  perspective: 1000px;
+  transform: translateZ(0);
 }
 
 /* Bubble Animation */
@@ -168,6 +190,60 @@ html {
 }
 .animate-fade-in {
   animation: fade-in 0.5s ease-out;
+}
+
+/* Bubble Floating Animation */
+@keyframes float-bubble-1 {
+  0%,
+  100% {
+    transform: translateY(0px) translateX(0px);
+  }
+  25% {
+    transform: translateY(-20px) translateX(15px);
+  }
+  50% {
+    transform: translateY(-40px) translateX(-10px);
+  }
+  75% {
+    transform: translateY(-20px) translateX(20px);
+  }
+}
+
+@keyframes float-bubble-2 {
+  0%,
+  100% {
+    transform: translateY(0px) translateX(0px);
+  }
+  25% {
+    transform: translateY(-25px) translateX(-15px);
+  }
+  50% {
+    transform: translateY(-50px) translateX(10px);
+  }
+  75% {
+    transform: translateY(-25px) translateX(-20px);
+  }
+}
+
+@keyframes float-bubble-3 {
+  0%,
+  100% {
+    transform: translateY(0px) translateX(0px);
+  }
+  25% {
+    transform: translateY(-30px) translateX(20px);
+  }
+  50% {
+    transform: translateY(-60px) translateX(-15px);
+  }
+  75% {
+    transform: translateY(-30px) translateX(15px);
+  }
+}
+
+.bubble {
+  animation: var(--bubble-animation, float-bubble-1) var(--bubble-duration, 20s)
+    ease-in-out infinite;
 }
 
 /* Interactive Effects */
