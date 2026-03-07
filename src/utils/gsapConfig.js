@@ -23,7 +23,7 @@ ScrollTrigger.defaults({
 export const smoothScrollTo = (target, offsetY = 80) => {
   gsap.to(window, {
     scrollTo: { y: target, offsetY },
-    duration: 1.2,
+    duration: 0.8,
     ease: "power2.inOut",
   });
 };
