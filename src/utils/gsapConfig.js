@@ -1,89 +1,39 @@
+/**
+ * gsapConfig.js
+ * Central GSAP configuration — import this ONCE at the top of App.jsx
+ * All other components can import from "gsap" directly; plugins are
+ * already registered globally by the time they mount.
+ */
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { ScrollToPlugin } from "gsap/ScrollToPlugin";
 
-// Register plugins
+// Register plugins globally so every component can use them
 gsap.registerPlugin(ScrollTrigger, ScrollToPlugin);
 
-// Set global defaults for smooth animations
-gsap.defaults({
-  duration: 0.6,
-  ease: "power2.out",
-});
-
-// Configure ScrollTrigger
-ScrollTrigger.defaults({
-  markers: false,
-  onUpdate: (self) => {
-    // Any global scroll trigger updates
-  },
-});
-
-// Smooth scroll configuration
-export const smoothScrollTo = (target, offsetY = 80) => {
+/**
+ * Smoothly scrolls the page to a section element by its id.
+ * Uses GSAP ScrollToPlugin for consistent cross-browser behaviour.
+ *
+ * @param {string} id   - The id attribute of the target section (without "#")
+ * @param {number} [offset=0] - Optional pixel offset from the top of the element
+ */
+export const smoothScrollTo = (id, offset = 0) => {
   gsap.to(window, {
-    scrollTo: { y: target, offsetY },
-    duration: 0.8,
-    ease: "power2.inOut",
+    duration: 1.3,
+    scrollTo: { y: `#${id}`, offsetY: offset },
+    ease: "power3.inOut",
   });
 };
 
-// Stagger animation helper
-export const staggerElements = (elements, options = {}) => {
-  const defaults = {
-    duration: 0.6,
-    stagger: 0.1,
-    ease: "power2.out",
-    ...options,
-  };
+/**
+ * Default GSAP config tweaks — sets a slightly higher fps cap
+ * and uses requestAnimationFrame for smoother animations.
+ */
+gsap.config({
+  autoSleep: 60,
+  force3D: true,
+  nullTargetWarn: false,
+});
 
-  return gsap.fromTo(
-    elements,
-    {
-      opacity: 0,
-      y: 30,
-      ...options.from,
-    },
-    {
-      opacity: 1,
-      y: 0,
-      ...defaults,
-      ...options.to,
-    },
-  );
-};
-
-// Parallax scroll helper
-export const createParallax = (element, speed = 0.5) => {
-  gsap.to(element, {
-    y: () => gsap.getProperty(window, "scrollY") * speed,
-    ease: "none",
-    duration: 0,
-  });
-};
-
-// Performance optimization: Disable animations on low-power devices
-export const prefersReducedMotion = () => {
-  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-};
-
-// Debounce helper for scroll events
-export const debounce = (func, wait) => {
-  let timeout;
-  return function executedFunction(...args) {
-    const later = () => {
-      clearTimeout(timeout);
-      func(...args);
-    };
-    clearTimeout(timeout);
-    timeout = setTimeout(later, wait);
-  };
-};
-
-export default {
-  smoothScrollTo,
-  staggerElements,
-  createParallax,
-  prefersReducedMotion,
-  debounce,
-};
+export default gsap;

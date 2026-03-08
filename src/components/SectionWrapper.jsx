@@ -1,66 +1,137 @@
+/**
+ * SectionWrapper.jsx
+ * Wraps every major section with:
+ * - Consistent max-width container & padding
+ * - A ScrollTrigger-powered staggered entrance (fade + rise)
+ * - An optional section label (e.g. "01 / ABOUT") in the top-left
+ * - A horizontal olive rule that animates in under the label
+ *
+ * Props:
+ *   id        {string}           The HTML id used for anchor navigation
+ *   label     {string}           Short section label, e.g. "01 / ABOUT"
+ *   children  {ReactNode}
+ *   className {string}           Extra Tailwind classes on the outer <section>
+ *   fullWidth {boolean}          If true, skip the inner max-width container
+ */
 import { useRef } from "react";
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 
-gsap.registerPlugin(ScrollTrigger);
+const SectionWrapper = ({
+  id,
+  label,
+  children,
+  className = "",
+  fullWidth = false,
+}) => {
+  const sectionRef = useRef(null);
+  const labelRef = useRef(null);
+  const ruleRef = useRef(null);
+  const contentRef = useRef(null);
 
-const SectionWrapper = ({ children, title }) => {
-  const titleRef = useRef(null);
-  const containerRef = useRef(null);
-
-  useGSAP(() => {
-    const ctx = gsap.context(() => {
-      // Title animation on scroll
-      gsap.fromTo(
-        titleRef.current,
-        { opacity: 0, x: -30 },
-        {
-          opacity: 1,
-          x: 0,
-          duration: 0.6,
-          scrollTrigger: {
-            trigger: containerRef.current,
-            start: "top 85%",
-            end: "top 75%",
-            scrub: 0.3,
-            markers: false,
-          },
+  // ── Scroll-triggered entrance animation ──────────────────────────────────
+  useGSAP(
+    () => {
+      const tl = gsap.timeline({
+        scrollTrigger: {
+          trigger: sectionRef.current,
+          start: "top 88%",
+          once: true, // Only animate on first entry
         },
-      );
+      });
 
-      // Children fade in
-      gsap.fromTo(
-        containerRef.current,
-        { opacity: 0 },
-        {
-          opacity: 1,
-          duration: 0.8,
-          delay: 0.2,
-          scrollTrigger: {
-            trigger: containerRef.current,
-            start: "top 85%",
-            end: "top 70%",
-            scrub: 0.3,
-            markers: false,
-          },
-        },
-      );
-    }, containerRef);
+      // Label slides in from left
+      if (labelRef.current) {
+        tl.fromTo(
+          labelRef.current,
+          { x: -24, opacity: 0 },
+          { x: 0, opacity: 1, duration: 0.55, ease: "power2.out" },
+          0,
+        );
+      }
 
-    return () => ctx.revert();
-  });
+      // Rule expands from left
+      if (ruleRef.current) {
+        tl.fromTo(
+          ruleRef.current,
+          { scaleX: 0, transformOrigin: "left" },
+          { scaleX: 1, duration: 0.7, ease: "power3.inOut" },
+          0.1,
+        );
+      }
+
+      // Content block fades + rises
+      if (contentRef.current) {
+        tl.fromTo(
+          contentRef.current,
+          { y: 32, opacity: 0 },
+          { y: 0, opacity: 1, duration: 0.7, ease: "power2.out" },
+          0.2,
+        );
+      }
+    },
+    { scope: sectionRef },
+  );
 
   return (
-    <div ref={containerRef} className="max-w-6xl mx-auto space-y-8 opacity-100">
+    <section
+      id={id}
+      ref={sectionRef}
+      className={`section ${className}`}
+      style={{
+        padding: "6rem 0",
+        position: "relative",
+        zIndex: 1, // sit above the canvas BubbleBg (z-index: 0)
+      }}
+    >
+      {/* ── Max-width wrapper ── */}
       <div
-        ref={titleRef}
-        className="inline-block px-4 py-1 mb-4 text-sm font-medium text-blue-400 border rounded-full bg-blue-500/10 border-blue-500/20"
+        style={{
+          maxWidth: fullWidth ? "100%" : "1200px",
+          margin: "0 auto",
+          padding: fullWidth ? 0 : "0 2rem",
+        }}
       >
-        {title}
+        {/* ── Section label + rule ── */}
+        {label && (
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "1rem",
+              marginBottom: "2.5rem",
+            }}
+          >
+            <span
+              ref={labelRef}
+              style={{
+                fontFamily: "JetBrains Mono, monospace",
+                fontSize: "0.7rem",
+                letterSpacing: "0.18em",
+                textTransform: "uppercase",
+                color: "#9ab050",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {label}
+            </span>
+            <div
+              ref={ruleRef}
+              style={{
+                flex: 1,
+                height: "1px",
+                background:
+                  "linear-gradient(to right, rgba(154,176,80,0.5), rgba(154,176,80,0.05))",
+              }}
+            />
+          </div>
+        )}
+
+        {/* ── Main content ── */}
+        <div ref={contentRef}>{children}</div>
       </div>
-      {children}
-    </div>
+    </section>
   );
 };
 

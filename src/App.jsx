@@ -1,75 +1,87 @@
-import React, { useRef, useEffect } from "react";
+/**
+ * App.jsx
+ * Root SPA component.
+ *
+ * Responsibilities:
+ * - Import gsapConfig FIRST so plugins are registered before any child mounts
+ * - Mount all sections in scroll order: Hero → About → Projects → Contact
+ * - Mount global overlay components: BubbleBg, Cursor, Navbar
+ * - Provide a smooth page-load reveal (the entire app fades in)
+ *
+ * This is a single-page layout (no React Router needed).
+ * Navigation is handled by GSAP ScrollTo via smoothScrollTo() in each component.
+ */
+
+// Must be the very first GSAP-related import so plugins register globally
+import "./utils/gsapConfig";
+
+import { useEffect, useRef } from "react";
 import gsap from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { ScrollToPlugin } from "gsap/ScrollToPlugin";
-import Sidebar from "./components/Sidebar";
-import BubbleBg from "/src/components/BubbleBg";
+
+// Global overlay components
+import BubbleBg from "./components/BubbleBG";
+import Cursor from "./components/Cursor";
+import Navbar from "./components/Navbar";
+
+// Page sections
 import Hero from "./sections/Hero";
 import About from "./sections/About";
 import Projects from "./sections/Projects";
 import Contact from "./sections/Contact";
-import { smoothScrollTo } from "./utils/gsapConfig";
 
-gsap.registerPlugin(ScrollTrigger, ScrollToPlugin);
+// ── App ───────────────────────────────────────────────────────────────────────
+const App = () => {
+  const appRef = useRef(null);
 
-function App() {
-  const mainRef = useRef(null);
-  const containerRef = useRef(null);
-  const isScrollingRef = useRef(false);
-
+  /**
+   * Page-load entrance: the entire app wrapper fades in from invisible.
+   * This prevents the flash of unstyled content as fonts/images load.
+   */
   useEffect(() => {
-    // Cleanup ScrollTrigger on unmount
-    return () => {
-      ScrollTrigger.getAll().forEach((trigger) => trigger.kill());
-    };
+    // Start invisible
+    gsap.set(appRef.current, { autoAlpha: 0 });
+
+    // Reveal after a short delay (gives fonts time to load)
+    gsap.to(appRef.current, {
+      autoAlpha: 1,
+      duration: 0.6,
+      ease: "power2.out",
+      delay: 0.1,
+    });
   }, []);
 
-  const scrollToSection = (sectionId) => {
-    const element = document.getElementById(sectionId);
-    if (element && !isScrollingRef.current) {
-      isScrollingRef.current = true;
-      smoothScrollTo(element, 80);
-      // Allow scroll immediately without waiting
-      setTimeout(() => {
-        isScrollingRef.current = false;
-      }, 100);
-    }
-  };
-
   return (
-    <div ref={containerRef} className="flex min-h-screen">
+    <>
+      {/*
+        ── Fixed / Global layer ──────────────────────────────────────────────
+        These components sit outside the main scroll flow.
+        BubbleBg (z-index 0) → Navbar (z-index 1000) → Cursor (z-index 9999+)
+      */}
       <BubbleBg />
-      <Sidebar onNavigate={scrollToSection} />
-      <main
-        ref={mainRef}
-        className="flex-1 pt-20 overflow-y-auto md:ml-64 md:pt-0 custom-scrollbar"
-      >
-        <div className="min-h-screen flex flex-col justify-center p-6 md:p-12">
-          <div id="hero">
-            <Hero onNavigate={scrollToSection} />
-          </div>
-        </div>
+      <Cursor />
+      <Navbar />
 
-        <div className="min-h-screen flex flex-col justify-center p-6 md:p-12">
-          <div id="about">
-            <About />
-          </div>
-        </div>
+      {/*
+        ── Main scroll container ─────────────────────────────────────────────
+        All sections are stacked vertically. Each has its own id for
+        anchor-based GSAP ScrollTo navigation.
+        z-index: 1 ensures sections render above the canvas BubbleBg (z-index 0).
+      */}
+      <main ref={appRef} style={{ position: "relative", zIndex: 1 }}>
+        {/* 1. Hero — first thing the visitor sees */}
+        <Hero />
 
-        <div className="min-h-screen flex flex-col justify-center p-6 md:p-12">
-          <div id="projects">
-            <Projects />
-          </div>
-        </div>
+        {/* 2. About — bio + infinite skills marquee */}
+        <About />
 
-        <div className="min-h-screen flex flex-col justify-center p-6 md:p-12">
-          <div id="contact">
-            <Contact />
-          </div>
-        </div>
+        {/* 3. Projects — infinite card carousel */}
+        <Projects />
+
+        {/* 4. Contact — email / socials / form + footer */}
+        <Contact />
       </main>
-    </div>
+    </>
   );
-}
+};
 
 export default App;
