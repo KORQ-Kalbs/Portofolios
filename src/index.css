@@ -195,3 +195,82 @@ button,
     transparent 100%
   );
 }
+
+/* =========================================================
+   OCEAN DEPTH PAGE GRADIENT
+   Menciptakan ilusi kedalaman laut dari atas halaman ke bawah.
+   Bagian atas (Hero): murky dark surface water
+   Bagian bawah (Contact): sandy sea floor
+   
+   Sections perlu background: transparent agar gradient ini
+   terlihat menembus ke setiap section.
+   ========================================================= */
+body {
+  /* Override background sebelumnya dengan ocean depth gradient */
+  background: linear-gradient(
+      to bottom,
+      #030a03 0%,
+      /* Permukaan: hampir hitam, hint hijau gelap  */ #040e04 8%,
+      /* Masuk ke dalam air                         */ #060f06 18%,
+      /* Zona epipelagik (0-200m)                   */ #050d05 32%,
+      /* Makin dalam                                */ #040a04 50%,
+      /* Zona mesopelagik (200-1000m)               */ #030804 65%,
+      /* Hampir tidak ada cahaya                    */ #040905 78%,
+      /* Zona bathypelagik — sangat gelap           */ #080c05 88%,
+      /* Mendekati dasar laut                       */ #100f06 94%,
+      /* Dasar laut: mulai ada warna pasir          */ #1a150a 100%
+        /* Sea floor: pasir gelap + organic matter    */
+    )
+    fixed;
+  /* fixed = gradient tidak scroll, menciptakan ilusi kedalaman yang konsisten */
+}
+
+/* =========================================================
+   SECTION TRANSPARENCY
+   Section-section yang datang setelah Hero perlu background
+   semi-transparan agar ocean depth gradient terlihat.
+   Hero punya background sendiri (surface water) dan TIDAK
+   transparan — itu benar, karena Hero adalah pintu masuk.
+   ========================================================= */
+#about,
+#projects,
+#contact {
+  /* Semi-transparan agar depth gradient menembus */
+  background: rgba(3, 8, 3, 0) !important;
+}
+
+/* =========================================================
+   WATER SHIMMER KEYFRAME (dipakai Hero.jsx)
+   ========================================================= */
+@keyframes shimmerMove {
+  0% {
+    opacity: 0.35;
+    transform: scaleX(0.9) translateX(-5%);
+  }
+  50% {
+    opacity: 1;
+    transform: scaleX(1) translateX(5%);
+  }
+  100% {
+    opacity: 0.35;
+    transform: scaleX(0.9) translateX(-5%);
+  }
+}
+
+/* =========================================================
+   DEPTH ATMOSPHERE: vignette effect di seluruh halaman
+   Membuat tepi layar sedikit lebih gelap, seperti melihat
+   ke dalam air dari dalam ruangan gelap.
+   ========================================================= */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9998;
+  background: radial-gradient(
+    ellipse 120% 80% at 50% 50%,
+    transparent 40%,
+    rgba(0, 0, 0, 0.25) 100%
+  );
+}
