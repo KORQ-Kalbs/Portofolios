@@ -1,29 +1,34 @@
 /**
- * BubbleBg.jsx — Underwater Bubble System
+ * BubbleBg.jsx — Underwater Ambient Bubble Canvas
+ * ═══════════════════════════════════════════════════════════════════════
  *
- * Canvas full-page yang merender gelembung air bawah laut.
- * Ditingkatkan dari versi sebelumnya dengan:
+ * SCOPE v2 (Updated):
+ *   Komponen ini sekarang di-scope HANYA ke zona underwater (About, Projects,
+ *   Contact). TIDAK digunakan di Hero section (yang punya Three.js sendiri).
  *
- * 1. THREE size categories:
- *    - Small  (r: 1–4px)  : gelembung kecil, bergerak cepat, banyak
- *    - Medium (r: 4–9px)  : gelembung sedang, lebih lambat
- *    - Large  (r: 9–20px) : gelembung besar, paling lambat, ada internal shimmer
+ *   App.jsx menempatkan BubbleBg di dalam <div id="underwater-zone">.
+ *   BubbleBg menggunakan `position: fixed` tapi kontrolnya lewat opacity:
+ *     - opacity: 0  saat Hero masih aktif (dikontrol App.jsx via scroll)
+ *     - opacity: 1  saat scroll melewati Hero selesai (submersion complete)
+ *   GSAP di App.jsx yang handle transisi opacity ini.
  *
- * 2. Underwater color palette (bukan lagi plain olive):
- *    HSL range: hue 100–165° (dari olive-green ke teal)
- *    Saturation rendah untuk kesan murky toxic ocean
+ * PERBEDAAN dari v1:
+ *   - Canvas menggunakan `position: fixed` (sama, agar mengikuti viewport)
+ *   - Tapi dibungkus dalam div yang App.jsx bisa toggle visibility-nya
+ *   - Warna bubble: lebih cyan/teal untuk "inside the wave" aesthetic
+ *     (kontras dengan Hero yang olive-green)
+ *   - Ditambah: occasional "bioluminescent burst" bubble yang lebih besar
+ *     dan lebih terang (sisa bioluminescence dari Hero wave crash)
  *
- * 3. Large bubbles punya efek visual:
- *    - Internal shimmer: arc putih kecil di sudut atas kiri (highlight)
- *    - Rim lebih tebal dan lebih terang
- *    - Sedikit blur glow di sekitarnya
+ * BUBBLE SYSTEM:
+ *   3 kategori: small (55%), medium (28%), large (12%), burst (5%)
+ *   Bubble "burst" adalah gelembung besar yang muncul pasca wave crash —
+ *   berwarna cyan cerah, naik lebih cepat, fades cepat.
  *
- * 4. Bubble chains: small bubbles kadang naik berkelompok
- *    (3–5 bubble berdekatan dengan timing berbeda)
- *
- * 5. Depth-aware opacity: bubble di bagian bawah canvas lebih transparan
- *    (seolah lebih jauh/dalam), makin ke atas makin jelas
+ * CANVAS: position:fixed, pointer-events:none, z-index:0
+ *   Selalu di belakang konten. Alpha diatur App.jsx via GSAP.
  */
+
 import { useEffect, useRef } from "react";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -32,160 +37,192 @@ import { useEffect, useRef } from "react";
 
 class Bubble {
   /**
-   * @param {number} canvasW  - Lebar canvas
-   * @param {number} canvasH  - Tinggi canvas
-   * @param {'small'|'medium'|'large'} [forcedSize] - Paksa kategori ukuran
-   * @param {number} [forcedX] - Paksa posisi X (untuk bubble chain)
+   * @param {number}  W          — canvas width
+   * @param {number}  H          — canvas height
+   * @param {'small'|'medium'|'large'|'burst'} [category]
+   * @param {number}  [forceX]   — forced X position (untuk bubble chain)
    */
-  constructor(canvasW, canvasH, forcedSize = null, forcedX = null) {
-    this.canvasW = canvasW;
-    this.canvasH = canvasH;
-    this.forcedSize = forcedSize;
-    this.forcedX = forcedX;
-    this.reset(true);
+  constructor(W, H, category = null, forceX = null) {
+    this.W = W;
+    this.H = H;
+    this.category = category;
+    this.forceX = forceX;
+    this.reset(true); // true = spawn randomly di canvas saat init
   }
 
   /**
-   * Reset bubble ke kondisi awal / re-spawn.
-   * @param {boolean} initial - true = boleh spawn di mana saja di canvas
+   * Re-init bubble properties.
+   * @param {boolean} initial — jika true, Y bisa di mana saja
    */
   reset(initial = false) {
-    // ── Tentukan ukuran bubble ────────────────────────────────────────────
-    // Distribusi: 60% small, 30% medium, 10% large
+    // Tentukan kategori jika belum dipaksa
     const roll =
-      this.forcedSize ||
-      (Math.random() < 0.6
+      this.category ??
+      (Math.random() < 0.55
         ? "small"
-        : Math.random() < 0.75
+        : Math.random() < 0.82
           ? "medium"
-          : "large");
-    this.size = roll;
+          : Math.random() < 0.97
+            ? "large"
+            : "burst");
+    this.cat = roll;
 
-    // Radius berdasarkan kategori
-    const radiusMap = {
-      small: Math.random() * 3 + 1, // 1–4px
-      medium: Math.random() * 5 + 4, // 4–9px
-      large: Math.random() * 11 + 9, // 9–20px
+    // Radius per kategori
+    const rMap = {
+      small: 1 + Math.random() * 3,
+      medium: 4 + Math.random() * 5,
+      large: 9 + Math.random() * 11,
+      burst: 14 + Math.random() * 10,
     };
-    this.r = radiusMap[roll];
+    this.r = rMap[roll];
 
-    // ── Posisi ───────────────────────────────────────────────────────────
+    // Posisi
     this.x =
-      this.forcedX !== null
-        ? this.forcedX + (Math.random() - 0.5) * 20 // cluster di sekitar forcedX
-        : Math.random() * this.canvasW;
-
+      this.forceX !== null
+        ? this.forceX + (Math.random() - 0.5) * 22
+        : Math.random() * this.W;
     this.y = initial
-      ? Math.random() * this.canvasH
-      : this.canvasH + this.r + Math.random() * 80; // spawn di bawah canvas
+      ? Math.random() * this.H
+      : this.H + this.r + Math.random() * 80;
 
-    // ── Kecepatan naik: bubble besar lebih lambat ─────────────────────────
-    const speedMap = {
-      small: Math.random() * 0.55 + 0.25, // 0.25–0.80 px/frame
-      medium: Math.random() * 0.35 + 0.15, // 0.15–0.50 px/frame
-      large: Math.random() * 0.2 + 0.08, // 0.08–0.28 px/frame
+    // Kecepatan naik: lebih kecil = lebih lambat
+    const sMap = {
+      small: 0.28 + Math.random() * 0.55,
+      medium: 0.18 + Math.random() * 0.38,
+      large: 0.08 + Math.random() * 0.2,
+      burst: 0.55 + Math.random() * 0.7,
     };
-    this.speedY = speedMap[roll];
+    this.speedY = sMap[roll];
+    this.speedX = (Math.random() - 0.5) * 0.2;
 
-    // ── Horizontal drift: slight wobble kiri-kanan ────────────────────────
-    this.speedX = (Math.random() - 0.5) * 0.18;
+    // Wobble sinusoidal
     this.wobble = Math.random() * Math.PI * 2;
     this.wobbleAmp =
-      roll === "large"
-        ? Math.random() * 1.2 + 0.5
-        : roll === "medium"
-          ? Math.random() * 0.8 + 0.2
-          : Math.random() * 0.5 + 0.1;
+      roll === "large" || roll === "burst"
+        ? Math.random() * 1.4 + 0.6
+        : Math.random() * 0.6 + 0.15;
     this.wobbleSpd =
-      roll === "large"
+      roll === "large" || roll === "burst"
         ? Math.random() * 0.008 + 0.003
-        : roll === "medium"
-          ? Math.random() * 0.012 + 0.004
-          : Math.random() * 0.018 + 0.006;
+        : Math.random() * 0.018 + 0.006;
 
-    // ── Warna: hue 95–165° (olive-green ke teal-toxic) ────────────────────
-    this.hue = Math.floor(Math.random() * 70) + 95; // 95–165°
-    this.sat = roll === "large" ? 35 : roll === "medium" ? 28 : 22; // lebih jenuh = lebih jelas
-    this.lum = roll === "large" ? 32 : roll === "medium" ? 28 : 24;
+    // Warna:
+    //   small/medium: blue-teal (underwater ambient)
+    //   large:        teal lebih gelap
+    //   burst:        cyan cerah (bioluminescence remnant)
+    this.hue =
+      roll === "burst"
+        ? 180 + Math.random() * 20 // cyan 180-200
+        : roll === "large"
+          ? 160 + Math.random() * 25 // teal 160-185
+          : 155 + Math.random() * 30; // blue-teal 155-185
+    this.sat =
+      roll === "burst"
+        ? 70
+        : roll === "large"
+          ? 45
+          : roll === "medium"
+            ? 35
+            : 28;
+    this.lum =
+      roll === "burst"
+        ? 48
+        : roll === "large"
+          ? 30
+          : roll === "medium"
+            ? 26
+            : 22;
 
-    // ── Opacity ───────────────────────────────────────────────────────────
-    const alphaMap = {
-      small: Math.random() * 0.1 + 0.04, // very subtle
-      medium: Math.random() * 0.14 + 0.06,
-      large: Math.random() * 0.18 + 0.08,
+    // Opacity base
+    const aMap = {
+      small: 0.04 + Math.random() * 0.09,
+      medium: 0.07 + Math.random() * 0.12,
+      large: 0.08 + Math.random() * 0.15,
+      burst: 0.2 + Math.random() * 0.25,
     };
-    this.baseAlpha = alphaMap[roll];
+    this.baseAlpha = aMap[roll];
     this.alpha = this.baseAlpha;
+
+    // Burst bubble: lifetime (fades setelah beberapa saat)
+    if (roll === "burst") {
+      this.lifetime = 4.0 + Math.random() * 3.5; // detik
+      this.born = performance.now() * 0.001;
+    } else {
+      this.lifetime = Infinity;
+      this.born = 0;
+    }
   }
 
-  /** Maju satu frame */
   update() {
     this.wobble += this.wobbleSpd;
     this.x += Math.sin(this.wobble) * this.wobbleAmp + this.speedX;
     this.y -= this.speedY;
 
-    // Opacity meningkat saat bubble mendekati permukaan (atas canvas)
-    // Effect: bubble "muncul" dari kegelapan laut dalam
-    const depthFactor = Math.max(0, Math.min(1, 1 - this.y / this.canvasH));
-    this.alpha = this.baseAlpha * (0.3 + depthFactor * 0.7);
+    // Depth-aware opacity: lebih visible di bagian atas canvas (permukaan)
+    const depthT = Math.max(0, Math.min(1, 1 - this.y / this.H));
+    this.alpha = this.baseAlpha * (0.28 + depthT * 0.72);
 
-    // Re-spawn saat keluar layar atas
-    if (this.y < -(this.r * 2)) this.reset(false);
-    // Wrap horizontal
-    if (this.x < -this.r) this.x = this.canvasW + this.r;
-    if (this.x > this.canvasW + this.r) this.x = -this.r;
-  }
-
-  /**
-   * Render bubble ke canvas.
-   * - Small/Medium: filled circle + rim
-   * - Large: filled circle + rim + internal shimmer highlight
-   * @param {CanvasRenderingContext2D} ctx
-   */
-  draw(ctx) {
-    const { x, y, r, hue, sat, lum, alpha, size } = this;
-
-    ctx.save();
-
-    // ── Main bubble body ──────────────────────────────────────────────────
-    ctx.beginPath();
-    ctx.arc(x, y, r, 0, Math.PI * 2);
-    ctx.fillStyle = `hsla(${hue}, ${sat}%, ${lum}%, ${alpha})`;
-    ctx.fill();
-
-    // ── Rim (edge glow) ───────────────────────────────────────────────────
-    ctx.strokeStyle = `hsla(${hue}, ${sat + 18}%, ${lum + 22}%, ${alpha * 2.2})`;
-    ctx.lineWidth = size === "large" ? 1.2 : size === "medium" ? 0.8 : 0.5;
-    ctx.stroke();
-
-    // ── Large bubble extras ───────────────────────────────────────────────
-    if (size === "large") {
-      // Shimmer highlight: arc putih di pojok kiri atas bubble
-      // Merepresentasikan pantulan cahaya di permukaan bubble
-      ctx.beginPath();
-      ctx.arc(
-        x - r * 0.3, // offset ke kiri
-        y - r * 0.3, // offset ke atas
-        r * 0.35, // ukuran ≈35% dari radius bubble
-        Math.PI * 1.1, // sudut mulai
-        Math.PI * 1.85, // sudut akhir
-      );
-      ctx.strokeStyle = `rgba(220, 240, 200, ${alpha * 1.8})`;
-      ctx.lineWidth = 1.2;
-      ctx.stroke();
-
-      // Soft inner glow (radial via multiple arcs)
-      ctx.beginPath();
-      ctx.arc(x, y, r * 0.6, 0, Math.PI * 2);
-      ctx.fillStyle = `hsla(${hue}, ${sat}%, ${lum + 10}%, ${alpha * 0.25})`;
-      ctx.fill();
+    // Burst lifetime fade
+    if (this.lifetime < Infinity) {
+      const age = performance.now() * 0.001 - this.born;
+      const fadeT = Math.max(0, 1 - age / this.lifetime);
+      this.alpha *= fadeT * fadeT; // ease-out fade
+      if (fadeT <= 0) {
+        this.reset(false);
+        return;
+      }
     }
 
-    // ── Medium bubble: small highlight dot ───────────────────────────────
-    if (size === "medium") {
+    // Respawn di bawah saat keluar atas
+    if (this.y < -(this.r * 2)) this.reset(false);
+    // Wrap X
+    if (this.x < -this.r) this.x = this.W + this.r;
+    if (this.x > this.W + this.r) this.x = -this.r;
+  }
+
+  draw(ctx) {
+    const { x, y, r, hue, sat, lum, alpha, cat } = this;
+    ctx.save();
+
+    // Body
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.fillStyle = `hsla(${hue},${sat}%,${lum}%,${alpha})`;
+    ctx.fill();
+
+    // Rim
+    ctx.strokeStyle = `hsla(${hue},${sat + 20}%,${lum + 25}%,${alpha * 2.2})`;
+    ctx.lineWidth = cat === "large" || cat === "burst" ? 1.2 : 0.6;
+    ctx.stroke();
+
+    // Large + burst: shimmer highlight
+    if (cat === "large" || cat === "burst") {
+      ctx.beginPath();
+      ctx.arc(
+        x - r * 0.3,
+        y - r * 0.3,
+        r * 0.38,
+        Math.PI * 1.1,
+        Math.PI * 1.88,
+      );
+      ctx.strokeStyle = `rgba(200, 240, 235, ${alpha * 2.0})`;
+      ctx.lineWidth = 1.3;
+      ctx.stroke();
+
+      // Inner glow untuk burst (bioluminescent core)
+      if (cat === "burst") {
+        ctx.beginPath();
+        ctx.arc(x, y, r * 0.58, 0, Math.PI * 2);
+        ctx.fillStyle = `hsla(${hue},80%,65%,${alpha * 0.3})`;
+        ctx.fill();
+      }
+    }
+
+    // Medium: small highlight dot
+    if (cat === "medium") {
       ctx.beginPath();
       ctx.arc(x - r * 0.28, y - r * 0.28, r * 0.18, 0, Math.PI * 2);
-      ctx.fillStyle = `rgba(200, 220, 180, ${alpha * 1.5})`;
+      ctx.fillStyle = `rgba(190, 228, 225, ${alpha * 1.5})`;
       ctx.fill();
     }
 
@@ -197,7 +234,12 @@ class Bubble {
 // COMPONENT
 // ─────────────────────────────────────────────────────────────────────────────
 
-const BubbleBg = () => {
+/**
+ * @param {string}  [className]  — class untuk targeting GSAP dari App.jsx
+ * @param {boolean} [startHidden] — jika true, canvas mulai opacity:0
+ *                                  (App.jsx fade-in-kan setelah hero selesai)
+ */
+const BubbleBg = ({ className = "bubble-bg-canvas", startHidden = true }) => {
   const canvasRef = useRef(null);
   const rafRef = useRef(null);
   const bubblesRef = useRef([]);
@@ -206,72 +248,66 @@ const BubbleBg = () => {
     const canvas = canvasRef.current;
     const ctx = canvas.getContext("2d");
 
-    // Jumlah bubble per kategori
-    const COUNTS = { small: 50, medium: 20, large: 8 };
-    // Waktu antar spawn bubble chain (ms)
-    const CHAIN_INTERVAL = 3500;
+    // Jumlah bubble per kategori awal
+    const COUNTS = { small: 55, medium: 22, large: 10 };
+    const BURST_INTERVAL = 4500; // ms — spawn burst bubble secara periodik
 
-    /** Set ukuran canvas ke full viewport */
     const resize = () => {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
       bubblesRef.current.forEach((b) => {
-        b.canvasW = canvas.width;
-        b.canvasH = canvas.height;
+        b.W = canvas.width;
+        b.H = canvas.height;
       });
     };
 
-    /** Buat semua bubble */
-    const spawnBubbles = () => {
-      const w = canvas.width;
-      const h = canvas.height;
+    const spawnAll = () => {
+      const W = canvas.width,
+        H = canvas.height;
       const all = [];
-
-      // Small bubbles
-      for (let i = 0; i < COUNTS.small; i++)
-        all.push(new Bubble(w, h, "small"));
-      // Medium bubbles
-      for (let i = 0; i < COUNTS.medium; i++)
-        all.push(new Bubble(w, h, "medium"));
-      // Large bubbles
-      for (let i = 0; i < COUNTS.large; i++)
-        all.push(new Bubble(w, h, "large"));
-
+      Object.entries(COUNTS).forEach(([cat, n]) => {
+        for (let i = 0; i < n; i++) all.push(new Bubble(W, H, cat));
+      });
       bubblesRef.current = all;
     };
 
-    /**
-     * Spawn "bubble chain" — sekelompok 3–5 small bubble di posisi X yang sama,
-     * memberikan efek gelembung naik dari satu titik (seperti dari batu/tanaman).
-     */
+    // Bubble chain: 3-5 small bubble dari titik yang sama
     const spawnChain = () => {
-      const w = canvas.width;
-      const h = canvas.height;
-      const chainX = Math.random() * w;
-      const chainLen = Math.floor(Math.random() * 3) + 3; // 3–5 bubble
-      for (let i = 0; i < chainLen; i++) {
-        const b = new Bubble(w, h, "small", chainX);
-        // Offset vertikal agar tidak muncul serentak
-        b.y = h + b.r + i * (Math.random() * 25 + 10);
+      const W = canvas.width,
+        H = canvas.height;
+      const cx = Math.random() * W;
+      const len = 3 + Math.floor(Math.random() * 3);
+      for (let i = 0; i < len; i++) {
+        const b = new Bubble(W, H, "small", cx);
+        b.y = H + b.r + i * (12 + Math.random() * 18);
         bubblesRef.current.push(b);
       }
     };
 
-    // ── Init ──────────────────────────────────────────────────────────────
+    // Burst bubble: sisa bioluminescence dari Hero wave crash
+    const spawnBurst = () => {
+      const W = canvas.width,
+        H = canvas.height;
+      const n = 2 + Math.floor(Math.random() * 3); // 2-4 burst setiap kali
+      for (let i = 0; i < n; i++) {
+        const b = new Bubble(W, H, "burst");
+        bubblesRef.current.push(b);
+      }
+    };
+
     resize();
-    spawnBubbles();
+    spawnAll();
 
-    // Chain spawn secara periodik
-    const chainTimer = setInterval(spawnChain, CHAIN_INTERVAL);
+    const chainTimer = setInterval(spawnChain, 3200);
+    const burstTimer = setInterval(spawnBurst, BURST_INTERVAL);
 
-    // ── Main loop ─────────────────────────────────────────────────────────
     const animate = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       bubblesRef.current.forEach((b) => {
         b.update();
         b.draw(ctx);
       });
-      // Bersihkan chain bubbles yang sudah keluar layar
+      // Bersihkan bubble chain yang expired (jauh di atas)
       bubblesRef.current = bubblesRef.current.filter((b) => b.y > -(b.r * 3));
       rafRef.current = requestAnimationFrame(animate);
     };
@@ -282,6 +318,7 @@ const BubbleBg = () => {
     return () => {
       cancelAnimationFrame(rafRef.current);
       clearInterval(chainTimer);
+      clearInterval(burstTimer);
       window.removeEventListener("resize", resize);
     };
   }, []);
@@ -289,6 +326,7 @@ const BubbleBg = () => {
   return (
     <canvas
       ref={canvasRef}
+      className={className}
       aria-hidden="true"
       style={{
         position: "fixed",
@@ -298,8 +336,11 @@ const BubbleBg = () => {
         height: "100vh",
         zIndex: 0,
         pointerEvents: "none",
-        // Sedikit multiply blend agar bubbles terlihat bagian dari background
+        // mixBlendMode screen: bubble lebih cerah di atas background gelap
         mixBlendMode: "screen",
+        // Dimulai transparan; App.jsx fade-in saat hero selesai
+        opacity: startHidden ? 0 : 1,
+        transition: "none", // transisi dihandle oleh GSAP, bukan CSS
       }}
     />
   );
