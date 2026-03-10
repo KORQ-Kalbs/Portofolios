@@ -325,19 +325,7 @@ const Projects = () => {
             }}
           >
             Selected <span style={{ color: "#9ab050" }}>Work</span>
-          </h2>
-          <p
-            style={{
-              fontFamily: "Outfit, sans-serif",
-              fontWeight: 300,
-              fontSize: "0.875rem",
-              color: "#5a5a56",
-              maxWidth: "260px",
-              textAlign: "right",
-            }}
-          >
-            Hover to pause · Click to explore
-          </p>
+          </h2> 
         </div>
 
         {/* ── Infinite card track ── */}
